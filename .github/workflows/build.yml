@@ -40,7 +40,7 @@ jobs:
 
       - name: Init Bubblewrap
         run: |
-          echo "n" | bubblewrap init \
+          printf "n\n$JAVA_HOME\n" | bubblewrap init \
             --manifest "https://jeanbernz.github.io/Indirimbo-500-no-solf-ge-/manifest.json" \
             --directory twa-app \
             --skipPwaValidation
@@ -50,7 +50,7 @@ jobs:
 
       - name: Build AAB
         working-directory: twa-app
-        run: echo "n" | bubblewrap build --skipPwaValidation
+        run: printf "n\n$JAVA_HOME\n" | bubblewrap build --skipPwaValidation
 
       - name: Sign AAB
         working-directory: twa-app
