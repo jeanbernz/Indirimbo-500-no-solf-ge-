@@ -49,6 +49,9 @@ jobs:
           }
           CONF
 
+      - name: Pre-create twa-app directory
+        run: mkdir -p twa-app
+
       - name: Init Bubblewrap
         run: |
           bubblewrap init \
