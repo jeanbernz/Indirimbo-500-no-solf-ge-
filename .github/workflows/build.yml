@@ -1,1 +1,71 @@
+name: Build Signed AAB
 
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Install Android SDK
+        run: |
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          mkdir -p $HOME/android/cmdline-tools
+          unzip -q commandlinetools-linux-11076708_latest.zip -d $HOME/android/cmdline-tools
+          mv $HOME/android/cmdline-tools/cmdline-tools $HOME/android/cmdline-tools/latest
+          echo "ANDROID_HOME=$HOME/android" >> $GITHUB_ENV
+          echo "$HOME/android/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$HOME/android/platform-tools" >> $GITHUB_PATH
+
+      - name: Accept licenses
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Init Bubblewrap
+        run: |
+          bubblewrap init \
+            --manifest "https://jeanbernz.github.io/Indirimbo-500-no-solf-ge-/manifest.json" \
+            --directory twa-app \
+            --skipPwaValidation
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > twa-app/signing.keystore
+
+      - name: Build AAB
+        working-directory: twa-app
+        run: bubblewrap build --skipPwaValidation
+
+      - name: Sign AAB
+        working-directory: twa-app
+        run: |
+          jarsigner -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore signing.keystore \
+            -storepass ${{ secrets.KEY_PASSWORD }} \
+            -keypass ${{ secrets.KEY_PASSWORD }} \
+            app-release-bundle.aab \
+            my-key-alias
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: Indirimbo500-signed
+          path: twa-app/app-release-bundle.aab
