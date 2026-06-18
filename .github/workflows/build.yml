@@ -16,6 +16,7 @@ jobs:
           node-version: '18'
 
       - uses: actions/setup-java@v4
+        id: java
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -38,9 +39,19 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
+      - name: Create Bubblewrap config
+        run: |
+          mkdir -p $HOME/.bubblewrap
+          cat > $HOME/.bubblewrap/config.json << CONF
+          {
+            "jdkPath": "${{ steps.java.outputs.path }}",
+            "androidSdkPath": "$HOME/android"
+          }
+          CONF
+
       - name: Init Bubblewrap
         run: |
-          printf "n\n$JAVA_HOME\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | bubblewrap init \
+          bubblewrap init \
             --manifest "https://jeanbernz.github.io/Indirimbo-500-no-solf-ge-/manifest.json" \
             --directory twa-app \
             --skipPwaValidation
@@ -50,7 +61,7 @@ jobs:
 
       - name: Build AAB
         working-directory: twa-app
-        run: printf "n\n$JAVA_HOME\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | bubblewrap build --skipPwaValidation
+        run: bubblewrap build --skipPwaValidation
 
       - name: Sign AAB
         working-directory: twa-app
